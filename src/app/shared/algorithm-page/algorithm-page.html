@@ -1,0 +1,26 @@
+@let m = meta();
+
+<a class="back" routerLink="/">← Powrót do menu</a>
+
+@if (m) {
+  <header class="page-head">
+    <span class="page-head__icon" aria-hidden="true">{{ m.icon }}</span>
+    <div>
+      <h1>{{ m.title }}</h1>
+      <p class="page-head__summary">{{ m.summary }}</p>
+      <div class="page-head__meta">
+        <span class="badge">{{ m.method }}</span>
+        @for (tag of m.tags; track tag) {
+          <span class="badge">{{ tag }}</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <div class="page-body">
+
+    <ng-content />
+  </div>
+} @else {
+  <p>Nie znaleziono algorytmu o identyfikatorze „{{ algoId() }}".</p>
+}

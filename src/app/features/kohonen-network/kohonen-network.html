@@ -1,0 +1,187 @@
+<app-algorithm-page algoId="kohonen-network">
+
+  <section class="panel">
+    <h3>Parametry</h3>
+    <form [formGroup]="form" class="form-grid">
+      <label class="field">
+        <span>Szerokość mapy</span>
+        <input type="number" formControlName="width" min="2" max="40" />
+      </label>
+      <label class="field">
+        <span>Wysokość mapy</span>
+        <input type="number" formControlName="height" min="2" max="40" />
+      </label>
+      <label class="field">
+        <span>Współczynnik uczenia η</span>
+        <input type="number" formControlName="eta" step="0.001" min="0.0001" />
+      </label>
+      <label class="field">
+        <span>Osłabienie sąsiedztwa h: {{ form.controls.neighborH.value | number: '1.2-2' }}</span>
+        <input type="range" formControlName="neighborH" min="0" max="1" step="0.05" />
+      </label>
+      <label class="field">
+        <span>Liczba epok</span>
+        <input type="number" formControlName="epochs" min="1" />
+      </label>
+      <label class="field">
+        <span>Seed (puste = losowy)</span>
+        <input type="number" formControlName="seed" placeholder="losowy" />
+      </label>
+      <label class="field">
+        <span>Prędkość animacji (prezentacji / krok): {{ form.controls.speed.value }}</span>
+        <input type="range" formControlName="speed" min="1" max="500" step="1" />
+      </label>
+    </form>
+
+    <div class="data-row">
+      <span class="data-row__label">Dane: <strong>{{ dataSource() }}</strong></span>
+      <label class="btn btn--file">
+        Wgraj CSV OHLC
+        <input type="file" accept=".csv,text/csv" (change)="onFileSelected($event)" hidden />
+      </label>
+    </div>
+
+    <div class="actions">
+      @if (!isRunning()) {
+        <button type="button" class="btn btn--primary" (click)="start()" [disabled]="form.invalid || !candles().length">
+          {{ hasRun() ? 'Wznów' : 'Start' }}
+        </button>
+      } @else {
+        <button type="button" class="btn" (click)="stop()">Stop</button>
+      }
+      <button type="button" class="btn" (click)="reset()" [disabled]="!hasRun()">Reset</button>
+      <button type="button" class="btn" (click)="reinit()" [disabled]="isRunning() || form.invalid || !candles().length">
+        Reinicjalizuj wagi
+      </button>
+      <button type="button" class="btn" (click)="toggleHits()" [disabled]="!hasRun()">
+        {{ showHits() ? 'Pokaż kolory wag' : 'Pokaż trafienia' }}
+      </button>
+
+      @if (isDone()) {
+        <span class="badge badge--warn">Zakończono ({{ epoch() }} epok)</span>
+      }
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat__label">Epoka</span>
+      <span class="stat__value">{{ epoch() | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Błąd kwantyzacji</span>
+      <span class="stat__value">{{ quantError() | number: '1.4-4' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Rozmiar mapy</span>
+      <span class="stat__value">{{ mapWidth() }} × {{ mapHeight() }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Świece</span>
+      <span class="stat__value">{{ candles().length | number }}</span>
+    </div>
+  </section>
+
+  <div class="som-layout">
+
+    <section class="chart-card">
+      <div class="chart-card__head">
+        <h3>Mapa Kohonena</h3>
+        <span class="badge">{{ showHits() ? 'liczba trafień' : 'kolor = wektor wag (RGB)' }}</span>
+      </div>
+      @if (cells().length) {
+        <div
+          class="som-map"
+          [style.grid-template-columns]="'repeat(' + mapWidth() + ', 1fr)'"
+        >
+          @for (cell of cells(); track cell.index) {
+            <button
+              type="button"
+              class="som-cell"
+              [class.som-cell--active]="selectedNeuron() === cell.index"
+              [style.background]="showHits() ? null : cell.color"
+              [style.--hit-opacity]="cell.hits ? (0.15 + 0.85 * cell.hits / 8) : 0"
+              [class.som-cell--hit]="showHits()"
+              (click)="selectNeuron(cell.index)"
+              [title]="'Neuron ' + cell.index + ' · trafienia: ' + cell.hits"
+            >
+              @if (showHits() && cell.hits) {
+                <span class="som-cell__count">{{ cell.hits }}</span>
+              }
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="panel__note">Uruchom uczenie, aby zobaczyć mapę neuronów.</p>
+      }
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-card__head">
+        <h3>Prototyp klastra</h3>
+        <span class="badge">świeca z wag neuronu</span>
+      </div>
+      @if (prototype(); as p) {
+        <div class="proto">
+          <svg class="candle" viewBox="0 0 40 120" preserveAspectRatio="xMidYMid meet">
+            <line class="candle__wick" x1="20" y1="0" x2="20" y2="120" />
+            <rect class="candle__body" x="8" [attr.y]="p.geom.bodyY" width="24" [attr.height]="p.geom.bodyH" />
+          </svg>
+          <dl class="proto__meta">
+            <div><dt>Neuron</dt><dd>({{ p.x }}, {{ p.y }})</dd></div>
+            <div><dt>Trafienia</dt><dd>{{ p.hits }}</dd></div>
+            <div><dt>Górny knot</dt><dd>{{ p.upper | number: '1.2-2' }}</dd></div>
+            <div><dt>Korpus</dt><dd>{{ p.body | number: '1.2-2' }}</dd></div>
+            <div><dt>Dolny knot</dt><dd>{{ p.lower | number: '1.2-2' }}</dd></div>
+          </dl>
+        </div>
+      } @else {
+        <p class="panel__note">Kliknij neuron na mapie, aby zobaczyć jego świecę-prototyp.</p>
+      }
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="chart-card__head">
+      <h3>Zbiór testowy</h3>
+      <span class="badge">kliknij, by zaznaczyć neuron-zwycięzcę</span>
+    </div>
+    <div class="test-set">
+      @for (t of testCandles; track t.label; let i = $index) {
+        <button type="button" class="test-candle" (click)="selectTest(i)">
+          <svg class="candle" viewBox="0 0 40 120" preserveAspectRatio="xMidYMid meet">
+            <line class="candle__wick" x1="20" y1="0" x2="20" y2="120" />
+            <rect
+              class="candle__body"
+              x="8"
+              [attr.y]="geomForCandle(t.candle).bodyY"
+              width="24"
+              [attr.height]="geomForCandle(t.candle).bodyH"
+            />
+          </svg>
+          <span class="test-candle__label">{{ t.label }}</span>
+          @if (testWinners()[i] !== undefined && cells().length) {
+            <span class="badge">neuron {{ testWinners()[i] }}</span>
+          }
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Zbieżność</h3>
+      <span class="badge">błąd kwantyzacji w funkcji epoki</span>
+    </div>
+    <apx-chart
+      [series]="series()"
+      [chart]="chart"
+      [stroke]="stroke"
+      [dataLabels]="dataLabels"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [xaxis]="xaxis"
+      [yaxis]="yaxis"
+    />
+  </section>
+</app-algorithm-page>

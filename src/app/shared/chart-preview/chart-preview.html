@@ -1,0 +1,20 @@
+<section class="chart-card">
+  <div class="chart-card__head">
+    <h3>{{ heading() }}</h3>
+    <span class="badge">oś Y: {{ yLabel() }}</span>
+  </div>
+
+  <apx-chart
+    [series]="series"
+    [chart]="chart"
+    [stroke]="stroke"
+    [dataLabels]="dataLabels"
+    [grid]="grid"
+    [tooltip]="tooltip"
+    [xaxis]="xaxis"
+  />
+
+  <p class="chart-card__hint">
+    Wykres gotowy do podpięcia danych — algorytm będzie strumieniował tu wyniki na żywo.
+  </p>
+</section>

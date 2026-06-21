@@ -1,0 +1,30 @@
+<section class="hero">
+  <h1>Wybierz algorytm</h1>
+  <p class="hero__lead">
+    Zestaw demonstracji algorytmów optymalizacji i sztucznej inteligencji.
+    Każdy algorytm uruchamiany jest w osobnym module z wizualizacją działania na żywo.
+  </p>
+</section>
+
+<div class="grid">
+  @for (algo of algorithms; track algo.id) {
+    <a class="card" [routerLink]="['/', algo.id]">
+      <div class="card__top">
+        <span class="card__icon" aria-hidden="true">{{ algo.icon }}</span>
+        <span class="card__order">#{{ algo.order }}</span>
+      </div>
+
+      <h2 class="card__title">{{ algo.title }}</h2>
+      <p class="card__summary">{{ algo.summary }}</p>
+
+      <div class="card__meta">
+        <span class="badge">{{ algo.method }}</span>
+        @for (tag of algo.tags; track tag) {
+          <span class="badge">{{ tag }}</span>
+        }
+      </div>
+
+      <span class="card__cta">Otwórz →</span>
+    </a>
+  }
+</div>

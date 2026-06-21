@@ -1,0 +1,46 @@
+.back {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
+.page-head {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+
+  &__icon {
+    font-size: 2.4rem;
+    line-height: 1;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+  }
+
+  &__summary {
+    margin: 0 0 0.75rem;
+    color: var(--text-dim);
+    max-width: 70ch;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}
+
+.page-body {
+  display: grid;
+  gap: 1.25rem;
+}

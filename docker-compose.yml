@@ -1,0 +1,11 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: algorithms-app:latest
+    container_name: algorithms-app
+    ports:
+      # Host 4200 -> kontener 80 (nginx).
+      - "4200:80"
+    restart: unless-stopped

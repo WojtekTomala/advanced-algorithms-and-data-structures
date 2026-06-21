@@ -1,0 +1,110 @@
+<app-algorithm-page algoId="particle-swarm">
+
+  <section class="panel">
+    <h3>Parametry</h3>
+    <form [formGroup]="form" class="form-grid">
+      <label class="field">
+        <span>Liczba cząstek</span>
+        <input type="number" formControlName="particleCount" min="1" />
+      </label>
+      <label class="field">
+        <span>Prędkość cząstki (|v|)</span>
+        <input type="number" formControlName="velocity" step="0.001" min="0.0001" />
+      </label>
+      <label class="field">
+        <span>Losowość kierunku: {{ form.controls.randomness.value | number: '1.2-2' }}</span>
+        <input type="range" formControlName="randomness" min="0" max="1" step="0.05" />
+      </label>
+      <label class="field">
+        <span>Próg stopu (epoki bez poprawy)</span>
+        <input type="number" formControlName="maxStaleIterations" min="1" />
+      </label>
+      <label class="field">
+        <span>Seed (puste = losowy)</span>
+        <input type="number" formControlName="seed" placeholder="losowy" />
+      </label>
+      <label class="field">
+        <span>Prędkość animacji (epok / krok): {{ form.controls.speed.value }}</span>
+        <input type="range" formControlName="speed" min="1" max="500" step="1" />
+      </label>
+    </form>
+
+    <div class="actions">
+      @if (!isRunning()) {
+        <button type="button" class="btn btn--primary" (click)="start()" [disabled]="form.invalid">
+          {{ hasRun() ? 'Wznów' : 'Start' }}
+        </button>
+      } @else {
+        <button type="button" class="btn" (click)="stop()">Stop</button>
+      }
+      <button type="button" class="btn" (click)="reset()" [disabled]="!hasRun()">Reset</button>
+      <button type="button" class="btn" (click)="reseed()" [disabled]="isRunning() || form.invalid">
+        Rozrzuć rój na nowo
+      </button>
+
+      @if (isDone()) {
+        <span class="badge badge--warn">Zatrzymano (stagnacja)</span>
+      }
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat__label">Epoka</span>
+      <span class="stat__value">{{ epoch() | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Najlepsze f</span>
+      <span class="stat__value">{{ gbest().value | number: '1.3-3' }} / 8</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Pozycja (x, y)</span>
+      <span class="stat__value">
+        {{ gbest().x | number: '1.2-2' }}, {{ gbest().y | number: '1.2-2' }}
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Cząstki</span>
+      <span class="stat__value">{{ particles().length | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Epoki bez poprawy</span>
+      <span class="stat__value">{{ staleCount() | number }}</span>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Mapa funkcji f(x,y) na [0, 2π]²</h3>
+      <span class="badge">garby = jasne piki · kontury = poziomice</span>
+    </div>
+    <div class="map-wrap">
+      <canvas #mapCanvas class="map" [width]="fieldRes" [height]="fieldRes"></canvas>
+    </div>
+    <div class="legend">
+      <span class="legend__label">nisko</span>
+      <span class="legend__bar"></span>
+      <span class="legend__label">wysoko</span>
+      <span class="legend__sep"></span>
+      <span class="legend__item"><span class="legend__dot legend__dot--p"></span>cząstka</span>
+      <span class="legend__item"><span class="legend__dot legend__dot--g"></span>najlepsza (gbest)</span>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Zbieżność</h3>
+      <span class="badge">najlepsze f w funkcji epoki</span>
+    </div>
+    <apx-chart
+      [series]="series()"
+      [chart]="chart"
+      [stroke]="stroke"
+      [dataLabels]="dataLabels"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [xaxis]="xaxis"
+      [yaxis]="yaxis"
+    />
+  </section>
+</app-algorithm-page>

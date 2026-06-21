@@ -1,0 +1,13 @@
+# Tryb developerski z hot-reload (ng serve w kontenerze).
+# Użycie:  docker compose -f docker-compose.dev.yml up
+services:
+  web-dev:
+    image: node:24-alpine
+    container_name: algorithms-app-dev
+    working_dir: /app
+    command: sh -c "npm ci && npx ng serve --host 0.0.0.0 --port 4200 --poll 1000"
+    ports:
+      - "4200:4200"
+    volumes:
+      - .:/app
+      - /app/node_modules

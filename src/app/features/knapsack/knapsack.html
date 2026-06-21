@@ -1,0 +1,215 @@
+<app-algorithm-page algoId="knapsack">
+
+  <section class="panel">
+    <h3>Parametry</h3>
+    <form [formGroup]="form" class="form-grid">
+      <label class="field">
+        <span>Liczba przedmiotów (N)</span>
+        <input type="number" formControlName="itemCount" min="2" />
+      </label>
+
+      <label class="field">
+        <span>Wartość min</span>
+        <input type="number" formControlName="valueMin" />
+      </label>
+      <label class="field">
+        <span>Wartość max</span>
+        <input type="number" formControlName="valueMax" />
+      </label>
+
+      <label class="field">
+        <span>Waga min</span>
+        <input type="number" formControlName="weightMin" />
+      </label>
+      <label class="field">
+        <span>Waga max</span>
+        <input type="number" formControlName="weightMax" />
+      </label>
+
+      <label class="field">
+        <span>Pojemność (× Σwag): {{ form.controls.capacityRatio.value | number: '1.2-2' }}</span>
+        <input type="range" formControlName="capacityRatio" min="0.05" max="0.95" step="0.05" />
+      </label>
+
+      <label class="field">
+        <span>Mutowane geny</span>
+        <input type="number" formControlName="mutationGenes" min="1" />
+      </label>
+
+      <label class="field">
+        <span>Próg stopu (nieudane próby)</span>
+        <input type="number" formControlName="maxStaleIterations" min="1" />
+      </label>
+
+      <label class="field">
+        <span>Seed (puste = losowy)</span>
+        <input type="number" formControlName="seed" placeholder="losowy" />
+      </label>
+
+      <label class="field">
+        <span>Prędkość (pokoleń / krok): {{ form.controls.speed.value }}</span>
+        <input type="range" formControlName="speed" min="1" max="500" step="1" />
+      </label>
+    </form>
+
+    <div class="actions">
+      @if (!isRunning()) {
+        <button type="button" class="btn btn--primary" (click)="start()" [disabled]="form.invalid">
+          {{ hasRun() ? 'Wznów' : 'Start' }}
+        </button>
+      } @else {
+        <button type="button" class="btn" (click)="stop()">Stop</button>
+      }
+      <button type="button" class="btn" (click)="reset()" [disabled]="!hasRun()">Reset</button>
+      <button type="button" class="btn" (click)="regenerateItems()" [disabled]="isRunning() || form.invalid">
+        Regeneruj przedmioty
+      </button>
+
+      @if (isDone()) {
+        <span class="badge badge--warn">Zatrzymano (warunek stopu)</span>
+      }
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat__label">Pokolenie</span>
+      <span class="stat__value">{{ generation() | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Wartość plecaka</span>
+      <span class="stat__value">{{ bestValue() | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Udane próby</span>
+      <span class="stat__value">{{ improvements().length | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Nieudane próby</span>
+      <span class="stat__value">{{ staleCount() | number }}</span>
+    </div>
+  </section>
+
+  @if (comparisonCards().length) {
+    <section class="compare">
+      @for (card of comparisonCards(); track card.key) {
+        <article class="kbag" [class.kbag--final]="card.key === 'final'">
+          <header class="kbag__head">
+            <div>
+              <h3>{{ card.title }}</h3>
+              <span class="kbag__subtitle">{{ card.subtitle }}</span>
+            </div>
+            <span class="kbag__value">{{ card.snap.value | number: '1.0-0' }}</span>
+          </header>
+
+          <dl class="kbag__stats">
+            <div>
+              <dt>Wartość</dt>
+              <dd>{{ card.snap.value | number: '1.0-0' }}</dd>
+            </div>
+            <div>
+              <dt>Wybrane przedmioty</dt>
+              <dd>{{ card.snap.selectedCount | number }} / {{ card.snap.genome.length | number }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                @if (card.snap.feasible) {
+                  <span class="badge">dopuszczalny</span>
+                } @else {
+                  <span class="badge badge--warn">przeciążony</span>
+                }
+              </dd>
+            </div>
+          </dl>
+
+          <div class="kbag__cap">
+            <div class="kbag__cap-label">
+              <span>Waga</span>
+              <span>{{ card.snap.weight | number: '1.0-0' }} / {{ capacity() | number: '1.0-0' }}</span>
+            </div>
+            <div class="capacity-bar" [class.capacity-bar--over]="!card.snap.feasible">
+              <div class="capacity-bar__fill" [style.width.%]="fillPct(card.snap.weight)"></div>
+            </div>
+          </div>
+
+          <div class="genome genome--mini">
+            @for (gene of card.snap.genome; track $index) {
+              <span
+                class="genome__cell"
+                [class.genome__cell--on]="gene"
+                [title]="
+                  'Przedmiot #' +
+                  ($index + 1) +
+                  ' · wartość ' +
+                  (items()[$index].value | number: '1.0-1') +
+                  ' · waga ' +
+                  (items()[$index].weight | number: '1.0-1') +
+                  (gene ? ' · WYBRANY' : '')
+                "
+              ></span>
+            }
+          </div>
+        </article>
+      }
+    </section>
+
+    <div class="gain" [class.gain--positive]="valueGain() > 0">
+      Poprawa wartości: <strong>+{{ valueGain() | number: '1.0-0' }}</strong>
+      ({{ improvements().length | number }} udanych prób)
+    </div>
+  }
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Zbieżność</h3>
+      <span class="badge">najlepsza wartość w funkcji pokolenia</span>
+    </div>
+    <apx-chart
+      [series]="series()"
+      [chart]="chart"
+      [stroke]="stroke"
+      [dataLabels]="dataLabels"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [xaxis]="xaxis"
+      [yaxis]="yaxis"
+    />
+  </section>
+
+  <section class="panel">
+    <div class="chart-card__head">
+      <h3>Stopniowa poprawa</h3>
+      <span class="badge">{{ improvements().length }} udanych prób</span>
+    </div>
+    @if (improvements().length) {
+      <div class="imp-table">
+        <div class="imp-row imp-row--head">
+          <span>#</span><span>pokolenie</span><span>wartość</span>
+          <span>Δ</span><span>waga</span><span>przedmioty</span><span>status</span>
+        </div>
+        @for (imp of improvements(); track imp.attempt) {
+          <div class="imp-row">
+            <span>{{ imp.attempt }}</span>
+            <span>{{ imp.generation | number }}</span>
+            <span>{{ imp.valueBefore | number: '1.0-0' }} → {{ imp.valueAfter | number: '1.0-0' }}</span>
+            <span class="imp-gain" [class.imp-gain--neg]="imp.gain < 0">
+              {{ imp.gain >= 0 ? '+' : '' }}{{ imp.gain | number: '1.0-0' }}
+            </span>
+            <span>{{ imp.weight | number: '1.0-0' }}</span>
+            <span>{{ imp.selectedCount | number }}</span>
+            <span>
+              @if (imp.feasible) {
+                <span class="dot dot--ok" title="dopuszczalny"></span>
+              } @else {
+                <span class="dot dot--bad" title="przeciążony"></span>
+              }
+            </span>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="panel__note">Uruchom algorytm — tu pojawią się kolejne udane próby (poprawy wartości).</p>
+    }
+  </section>
+</app-algorithm-page>

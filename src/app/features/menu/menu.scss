@@ -1,0 +1,82 @@
+.hero {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    background: linear-gradient(135deg, #fff, var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  &__lead {
+    max-width: 60ch;
+    color: var(--text-dim);
+    margin: 0;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    background: var(--bg-elev-2);
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__icon {
+    font-size: 1.8rem;
+  }
+
+  &__order {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__title {
+    font-size: 1.15rem;
+  }
+
+  &__summary {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    flex: 1;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  &__cta {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent);
+  }
+}

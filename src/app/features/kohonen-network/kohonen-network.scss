@@ -1,0 +1,168 @@
+@use '../../shared/styles/controls';
+
+.data-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  &__label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+}
+
+.btn--file {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.som-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+
+  @media (min-width: 820px) {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.som-map {
+  display: grid;
+  gap: 2px;
+  margin-top: 0.5rem;
+  aspect-ratio: 1;
+  max-width: 520px;
+}
+
+.som-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 2px;
+  padding: 0;
+  cursor: pointer;
+  min-width: 0;
+  background: var(--bg-elev-2);
+
+  &--hit {
+    background: var(--bg-elev-2);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 2px;
+      background: var(--accent);
+      opacity: var(--hit-opacity, 0);
+    }
+  }
+
+  &__count {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    z-index: 1;
+  }
+
+  &--active {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+    z-index: 2;
+  }
+
+  &:hover {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.proto {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.candle {
+  width: 40px;
+  height: 120px;
+  flex-shrink: 0;
+
+  &__wick {
+    stroke: var(--text-dim);
+    stroke-width: 2;
+  }
+
+  &__body {
+    fill: var(--accent);
+    rx: 2;
+  }
+}
+
+.proto__meta {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  dt {
+    color: var(--text-dim);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+}
+
+.test-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.test-candle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: 130px;
+  padding: 0.75rem;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  .candle {
+    width: 28px;
+    height: 84px;
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--text-dim);
+    line-height: 1.2;
+  }
+}

@@ -1,0 +1,179 @@
+<app-algorithm-page algoId="multiprocessor-scheduling">
+
+  <section class="panel">
+    <h3>Parametry</h3>
+    <form [formGroup]="form" class="form-grid">
+      <label class="field">
+        <span>Liczba zadań (N)</span>
+        <input type="number" formControlName="taskCount" min="4" />
+      </label>
+      <label class="field">
+        <span>Czas zadania min</span>
+        <input type="number" formControlName="timeMin" />
+      </label>
+      <label class="field">
+        <span>Czas zadania max</span>
+        <input type="number" formControlName="timeMax" />
+      </label>
+      <label class="field">
+        <span>Mutowane geny</span>
+        <input type="number" formControlName="mutationGenes" min="1" />
+      </label>
+      <label class="field">
+        <span>Próg stopu (nieudane próby)</span>
+        <input type="number" formControlName="maxStaleIterations" min="1" />
+      </label>
+      <label class="field">
+        <span>Seed (puste = losowy)</span>
+        <input type="number" formControlName="seed" placeholder="losowy" />
+      </label>
+      <label class="field">
+        <span>Prędkość (pokoleń / krok): {{ form.controls.speed.value }}</span>
+        <input type="range" formControlName="speed" min="1" max="500" step="1" />
+      </label>
+    </form>
+
+    <div class="processors-info">
+      <span class="processors-info__label">Procesory (stałe mnożniki):</span>
+      @for (p of processors; track p.label) {
+        <span class="badge">{{ p.label }} × {{ p.multiplier | number: '1.2-2' }}</span>
+      }
+    </div>
+
+    <div class="actions">
+      @if (!isRunning()) {
+        <button type="button" class="btn btn--primary" (click)="start()" [disabled]="form.invalid">
+          {{ hasRun() ? 'Wznów' : 'Start' }}
+        </button>
+      } @else {
+        <button type="button" class="btn" (click)="stop()">Stop</button>
+      }
+      <button type="button" class="btn" (click)="reset()" [disabled]="!hasRun()">Reset</button>
+      <button type="button" class="btn" (click)="regenerateTasks()" [disabled]="isRunning() || form.invalid">
+        Regeneruj zadania
+      </button>
+
+      @if (isDone()) {
+        <span class="badge badge--warn">Zatrzymano (warunek stopu)</span>
+      }
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat__label">Pokolenie</span>
+      <span class="stat__value">{{ generation() | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">ΔT (makespan)</span>
+      <span class="stat__value">{{ makespan() | number: '1.0-1' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Nierównowaga (max/śr.)</span>
+      <span class="stat__value">{{ imbalance() | number: '1.2-2' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Udane mutacje</span>
+      <span class="stat__value">{{ improvements().length | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Nieudane próby</span>
+      <span class="stat__value">{{ staleCount() | number }}</span>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Zbieżność</h3>
+      <span class="badge">ΔT w funkcji pokolenia</span>
+    </div>
+    <apx-chart
+      [series]="convergenceSeries()"
+      [chart]="lineChart"
+      [stroke]="stroke"
+      [dataLabels]="dataLabels"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [xaxis]="lineXaxis"
+      [yaxis]="lineYaxis"
+    />
+  </section>
+
+  @if (blockPanels().length) {
+    <section class="blocks-compare">
+      @for (panel of blockPanels(); track panel.key) {
+        <article class="blocks-panel" [class.blocks-panel--final]="panel.key === 'final'">
+          <div class="chart-card__head">
+            <div>
+              <h3>{{ panel.title }}</h3>
+              <span class="blocks-panel__subtitle">{{ panel.subtitle }}</span>
+            </div>
+            <span class="badge">ΔT = {{ panel.makespan | number: '1.0-0' }}</span>
+          </div>
+
+          <div class="blocks">
+            @for (block of panel.blocks; track block.proc) {
+              <div class="block-col">
+                <div class="block-bar-wrap">
+                  <div
+                    class="block-bar"
+                    [class.block-bar--peak]="block.isMakespan"
+                    [style.height.%]="(block.load / blockScale()) * 100"
+                  >
+                    @for (t of block.tasks; track t.index) {
+                      <span
+                        class="block-seg"
+                        [style.flex-grow]="t.contribution"
+                        [style.background]="block.color"
+                        [title]="
+                          'Zadanie #' + (t.index + 1) +
+                          ' · czas bazowy ' + (t.baseTime | number: '1.0-1') +
+                          ' · na ' + block.label + ' = ' + (t.contribution | number: '1.0-1')
+                        "
+                      ></span>
+                    }
+                  </div>
+                </div>
+                <div class="block-col__foot">
+                  <span class="block-col__label" [style.color]="block.color">{{ block.label }}</span>
+                  <span class="block-col__mult">×{{ block.multiplier | number: '1.2-2' }}</span>
+                  <span class="block-col__load">{{ block.load | number: '1.0-0' }}</span>
+                  <span class="block-col__count">{{ block.tasks.length }} zad.</span>
+                </div>
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </section>
+
+    <div class="gain" [class.gain--positive]="makespanGain() > 0">
+      Redukcja ΔT: <strong>−{{ makespanGain() | number: '1.0-1' }}</strong>
+      ({{ improvements().length | number }} udanych mutacji)
+    </div>
+  }
+
+  <section class="panel">
+    <div class="chart-card__head">
+      <h3>Poprawa efektywności</h3>
+      <span class="badge">{{ improvements().length }} udanych mutacji</span>
+    </div>
+    @if (improvements().length) {
+      <div class="imp-table">
+        <div class="imp-row imp-row--head">
+          <span>#</span><span>pokolenie</span><span>ΔT przed → po</span><span>zysk</span>
+        </div>
+        @for (imp of improvements(); track imp.attempt) {
+          <div class="imp-row">
+            <span>{{ imp.attempt }}</span>
+            <span>{{ imp.generation | number }}</span>
+            <span>{{ imp.makespanBefore | number: '1.0-1' }} → {{ imp.makespanAfter | number: '1.0-1' }}</span>
+            <span class="imp-gain">−{{ imp.gain | number: '1.0-1' }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="panel__note">Uruchom algorytm — tu pojawią się kolejne udane mutacje (redukcje ΔT).</p>
+    }
+  </section>
+</app-algorithm-page>

@@ -1,0 +1,26 @@
+.chart-card {
+  padding: 1.25rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+
+    h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+  }
+
+  &__hint {
+    margin: 0.25rem 0 0;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+}

@@ -1,0 +1,172 @@
+<app-algorithm-page algoId="traveling-salesman">
+
+  <section class="panel">
+    <h3>Parametry</h3>
+    <form [formGroup]="form" class="form-grid">
+      <label class="field">
+        <span>Liczba miast (N)</span>
+        <input type="number" formControlName="cityCount" min="3" max="256" />
+      </label>
+      <label class="field">
+        <span>Koszt min</span>
+        <input type="number" formControlName="costMin" />
+      </label>
+      <label class="field">
+        <span>Koszt max</span>
+        <input type="number" formControlName="costMax" />
+      </label>
+      <label class="field">
+        <span>Mutowane geny (zamiany)</span>
+        <input type="number" formControlName="mutationGenes" min="1" />
+      </label>
+      <label class="field">
+        <span>Próg stopu (nieudane próby)</span>
+        <input type="number" formControlName="maxStaleIterations" min="1" />
+      </label>
+      <label class="field">
+        <span>Liczba przebiegów</span>
+        <input type="number" formControlName="runs" min="1" max="100" />
+      </label>
+      <label class="field">
+        <span>Seed (puste = losowy)</span>
+        <input type="number" formControlName="seed" placeholder="losowy" />
+      </label>
+      <label class="field">
+        <span>Prędkość (pokoleń / krok): {{ form.controls.speed.value }}</span>
+        <input type="range" formControlName="speed" min="1" max="500" step="1" />
+      </label>
+    </form>
+
+    <div class="actions">
+      @if (!isRunning()) {
+        <button type="button" class="btn btn--primary" (click)="start()" [disabled]="form.invalid">
+          {{ hasRun() ? 'Wznów' : 'Start' }}
+        </button>
+      } @else {
+        <button type="button" class="btn" (click)="stop()">Stop</button>
+      }
+      <button type="button" class="btn" (click)="reset()" [disabled]="!hasRun()">Reset</button>
+      <button type="button" class="btn" (click)="regenerateCities()" [disabled]="isRunning() || form.invalid">
+        Regeneruj miasta
+      </button>
+
+      @if (isDone()) {
+        <span class="badge badge--warn">Zakończono ({{ totalRuns() }} przebiegów)</span>
+      }
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat__label">Przebieg</span>
+      <span class="stat__value">{{ runIndex() }} / {{ totalRuns() }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Pokolenie</span>
+      <span class="stat__value">{{ generation() | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Koszt bieżący</span>
+      <span class="stat__value">{{ currentCost() | number: '1.0-0' }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Najlepszy koszt</span>
+      <span class="stat__value">
+        @if (bestCostValue() !== null) {
+          {{ bestCostValue() | number: '1.0-0' }}
+        } @else {
+          —
+        }
+      </span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Nieudane próby</span>
+      <span class="stat__value">{{ staleCount() | number }}</span>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Graf trasy</h3>
+      @if (previewing()) {
+        <span class="badge badge--warn">podgląd wybranej mutacji</span>
+      } @else {
+        <span class="badge">{{ isDone() ? 'trasa najlepsza' : 'trasa bieżąca' }}</span>
+      }
+    </div>
+
+    @if (tour().length) {
+      <svg class="graph" [attr.viewBox]="viewBox" preserveAspectRatio="xMidYMid meet">
+
+        <polyline class="graph__route" [attr.points]="routePoints()" />
+
+        @for (pos of nodePositions(); track $index) {
+          <circle class="graph__node" [attr.cx]="pos.x" [attr.cy]="pos.y" r="3">
+            <title>Miasto {{ $index + 1 }}</title>
+          </circle>
+        }
+
+        @if (startNode(); as s) {
+          <circle class="graph__start" [attr.cx]="s.x" [attr.cy]="s.y" r="6" />
+        }
+      </svg>
+    } @else {
+      <p class="panel__note">Uruchom algorytm, aby zobaczyć graf trasy.</p>
+    }
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-card__head">
+      <h3>Zbieżność</h3>
+      <span class="badge">koszt w funkcji pokolenia (piłokształtny przy restartach)</span>
+    </div>
+    <apx-chart
+      [series]="series()"
+      [chart]="chart"
+      [stroke]="stroke"
+      [dataLabels]="dataLabels"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [xaxis]="xaxis"
+      [yaxis]="yaxis"
+    />
+  </section>
+
+  <section class="panel">
+    <div class="chart-card__head">
+      <h3>Mutacje (przyjęte)</h3>
+      <div class="mut-head">
+        <span class="badge">{{ mutations().length }} popraw</span>
+        @if (previewing()) {
+          <button type="button" class="btn" (click)="clearPreview()">trasa bieżąca</button>
+        }
+      </div>
+    </div>
+
+    @if (mutations().length) {
+      <div class="mut-list">
+        <div class="mut-row mut-row--head">
+          <span>#</span><span>przebieg</span><span>pokolenie</span>
+          <span>zamiana</span><span>koszt</span><span>zysk</span>
+        </div>
+        @for (m of mutations(); track $index) {
+          <button
+            type="button"
+            class="mut-row"
+            [class.mut-row--active]="selectedMutationIndex() === $index"
+            (click)="selectMutation($index)"
+          >
+            <span>{{ $index + 1 }}</span>
+            <span>{{ m.run }}</span>
+            <span>{{ m.generation | number }}</span>
+            <span>swap({{ m.i }}, {{ m.j }})</span>
+            <span>{{ m.costBefore | number: '1.0-0' }} → {{ m.costAfter | number: '1.0-0' }}</span>
+            <span class="mut-gain">−{{ m.gain | number: '1.0-1' }}</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="panel__note">Lista zapełni się przyjętymi mutacjami po uruchomieniu.</p>
+    }
+  </section>
+</app-algorithm-page>
